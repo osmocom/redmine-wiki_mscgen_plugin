@@ -1,8 +1,8 @@
 <% 
 	require 'rexml/document'
 
-	# macro[:graph][:image] is output of "dot -Tsvg". 
-	# Usually, dot's output is treated as binary. 
+	# macro[:graph][:image] is output of "mscgen -Tsvg". 
+	# Usually, mscgen's output is treated as binary. 
 	# But it is treated as utf-8 text in this context.
 	svg_xml = String.new(macro[:graph][:image]).force_encoding("utf-8")
 	if !svg_xml.valid_encoding?
@@ -17,7 +17,7 @@
 		end
 	}
 %>
-<div class="wiki-graphviz-inline">
+<div class="wiki-mscgen-inline">
 <%== el_svg.to_s %>
 </div>
 

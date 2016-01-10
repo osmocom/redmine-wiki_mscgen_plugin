@@ -6,8 +6,8 @@
 		img_src = macro[:data_scheme]
 	else
 		url_for_rendered_img = url_for(
-			:controller => 'wiki_graphviz',
-			:action => 'graphviz', 
+			:controller => 'wiki_mscgen',
+			:action => 'mscgen', 
 			:project_id => @project,
 			:id => macro[:params][:title], 
 			:layout => macro[:params][:layout], 
@@ -32,16 +32,16 @@
 <a href="<%= href %>" <% if macro[:params][:target] != "" %> target="<%= h macro[:params][:target] %>" <% end %> >
 <% end %>
 
-<img <% if use_map %> usemap="#<%= h "wiki-graphviz-map-#{macro[:map_index]}" %>" <% end %> <% [:align, :width, :height].each do |img_attr| %>
+<img <% if use_map %> usemap="#<%= h "wiki-mscgen-map-#{macro[:map_index]}" %>" <% end %> <% [:align, :width, :height].each do |img_attr| %>
 	<% if macro[:params][img_attr].to_s != "" %> <%= img_attr.to_s %>="<%= h macro[:params][img_attr].to_s %>" <% end %> 
-	<% end %> class="graphviz-macro-image" src="<%= img_src %>"/>
+	<% end %> class="mscgen-macro-image" src="<%= img_src %>"/>
 
 <% if !href.nil? %>
 </a>
 <% end %>
 
 <% if use_map %>
-<map style="display: inline;" name="<%= h "wiki-graphviz-map-#{macro[:map_index]}" %>">
+<map style="display: inline;" name="<%= h "wiki-mscgen-map-#{macro[:map_index]}" %>">
 	<% macro[:graph][:maps].each do |map| %>
 		<area <% if macro[:params][:target] != "" %> target="<%= h macro[:params][:target] %>" <% end %>href="<%= h map[:url] %>" shape="<%= h map[:shape] %>" coords="<%= h map[:positions].join(",") %>"/>
 	<% end %>
@@ -49,6 +49,6 @@
 <% end %>
 
 <% if macro[:params][:with_source] %>
-	<pre class="wiki-graphviz-source"><code><%= macro[:dottext] %></code></pre>
+	<pre class="wiki-mscgen-source"><code><%= macro[:dottext] %></code></pre>
 <% end %>
 

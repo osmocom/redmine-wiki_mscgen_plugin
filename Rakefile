@@ -14,7 +14,7 @@ Rake::TestTask.new do |t|
 end
 
 Rake::PackageTask.new do |p|
-  p.name = "wiki_graphviz_plugin"
+  p.name = "wiki_mscgen_plugin"
   p.version = :noversion
 
 	p.need_tar = true

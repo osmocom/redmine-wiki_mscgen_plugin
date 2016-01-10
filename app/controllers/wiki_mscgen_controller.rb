@@ -1,11 +1,11 @@
 
-class WikiGraphvizController < ApplicationController
+class WikiMscgenController < ApplicationController
 	unloadable
   before_filter :find_wiki, :wiki_authorize
 
-	include	WikiGraphvizHelper
+	include	WikiMscgenHelper
 
-  def graphviz
+  def mscgen
     @page = @wiki.find_page(params[:id], :project => @project)
     if @page.nil?
       render_404
@@ -34,7 +34,7 @@ class WikiGraphvizController < ApplicationController
 			render :text => graph[:image], :layout => false, :content_type => graph[:format][:content_type]
 		else
 			if graph[:message]
-				logger.error("graphviz: '#{graph[:message]}'")
+				logger.error("mscgen: '#{graph[:message]}'")
 			end
 			self.render_error("*** failed to render the graph")
 		end

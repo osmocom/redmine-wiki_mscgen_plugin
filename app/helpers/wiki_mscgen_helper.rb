@@ -4,21 +4,7 @@ require	'kconv'
 require	'fileutils'
 require 'base64'
 
-module WikiGraphvizHelper
-
-	class	FalldownDotError < RuntimeError
-	end
-
-	ALLOWED_LAYOUT = {
-		"circo" => 1, 
-		"dot" => 1, 
-		"fdp" => 1, 
-		"neato" => 1, 
-		"twopi" => 1,
-		"osage"  => 1,
-		"patchwork"  => 1,
-		"sfdp" => 1,
-	}.freeze
+module WikiMscgenHelper
 
 	ALLOWED_FORMAT = {
 		"png" => { :type => "png", :ext => ".png", :content_type => "image/png" },
@@ -30,18 +16,16 @@ module WikiGraphvizHelper
 	}.freeze
 
 	def	render_graph(params, dot_text, options = {})
-		layout = decide_layout(params[:layout])
 		fmt = decide_format(params[:format])
 
-		name = "wiki_graphviz_plugin." + Digest::SHA256.hexdigest( {
-			:layout => params[:layout],
+		name = "wiki_mscgen_plugin." + Digest::SHA256.hexdigest( {
 			:format => params[:format],
 			:dot_text => dot_text,
 		}.to_s)
-		cache_seconds = Setting.plugin_wiki_graphviz_plugin['cache_seconds'].to_i || 600
+		cache_seconds = Setting.plugin_wiki_mscgen_plugin['cache_seconds'].to_i || 600
 		result = Rails.cache.fetch(name, :raw => false, :expires_in => cache_seconds) do
-			Rails.logger.info "[wiki_graphviz]not in cache: #{name}"
-			self.render_graph_exactly(layout, fmt, dot_text, options)
+			Rails.logger.info "[wiki_mscgen]not in cache: #{name}"
+			self.render_graph_exactly(fmt, dot_text, options)
 		end
 
 		return result
@@ -98,13 +82,13 @@ module WikiGraphvizHelper
 				(inline_opt == "" && inline_default == false)) 
 		if output_inline
 			return render_to_string  :layout => false, 
-				:template => "wiki_graphviz/inline_#{fmt[:type]}", 
+				:template => "wiki_mscgen/inline_#{fmt[:type]}", 
 				:locals => {:macro => macro}
 		end
 
 
 		render_to_string :layout => false, 
-			:template => 'wiki_graphviz/macro', 
+			:template => 'wiki_mscgen/macro', 
 			:locals => {:macro => macro}
 	end
 
@@ -117,9 +101,9 @@ module WikiGraphvizHelper
 		@index_macro
 	end
 
-	def	render_graph_exactly(layout, fmt, dot_text, options = {})
+	def	render_graph_exactly(fmt, dot_text, options = {})
 
-		dir = File.join([Rails.root, 'tmp', 'wiki_graphviz_plugin'])
+		dir = File.join([Rails.root, 'tmp', 'wiki_mscgen_plugin'])
 		FileUtils.mkdir_p(dir);
 		if !FileTest.writable?(dir) && !Redmine::Platform.mswin?
 			FileUtils.chmod(0700, dir);
@@ -135,11 +119,7 @@ module WikiGraphvizHelper
 		}
 
 		result = {}
-		begin
-			self.create_image_using_gv(layout, fmt, dot_text, result, temps)
-		rescue NotImplementedError, FalldownDotError
-			self.create_image_using_dot(layout, fmt, dot_text, result, temps) 
-		end
+		self.create_image_using_dot(fmt, dot_text, result, temps) 
 
 		img = nil
 		maps = []
@@ -177,8 +157,8 @@ module WikiGraphvizHelper
 		result
 	end
 
-	def	create_image_using_dot(layout, fmt, dot_text, result, temps)
-		Rails.logger.info("[wiki_graphviz]using dot")
+	def	create_image_using_dot(fmt, dot_text, result, temps)
+		Rails.logger.info("[wiki_mscgen]using mscgen")
 
 		temps[:dot].open
 		temps[:dot].write(dot_text)
@@ -191,98 +171,21 @@ module WikiGraphvizHelper
 			result[:message] = t != "" ? t : mes
 		}
 
-		system("dot -K#{layout} -T#{fmt[:type]} < \"#{temps[:dot].path}\" > \"#{temps[:img].path}\" 2>\"#{temps[:err].path}\"")
+		system("mscgen -T#{fmt[:type]} -i /dev/stdin -o /dev/stdout < \"#{temps[:dot].path}\" > \"#{temps[:img].path}\" 2>\"#{temps[:err].path}\"")
 		if !$?.exited? || $?.exitstatus != 0
-			Rails.logger.info("[wiki_graphviz]dot image: #{$?.inspect}")
-			p.call("failed to execute dot when creating image.")
+			Rails.logger.info("[wiki_mscgen]dot image: #{$?.inspect}")
+			p.call("failed to execute mscgen when creating image.")
 			return
 		end
 
-		system("dot -K#{layout} -Timap < \"#{temps[:dot].path}\" > \"#{temps[:map].path}\" 2>\"#{temps[:err].path}\"")
+		system("mscgen -Tismaps -i /dev/stdin -o /dev/stdout < \"#{temps[:dot].path}\" > \"#{temps[:map].path}\" 2>\"#{temps[:err].path}\"")
 		if !$?.exited? || $?.exitstatus != 0
-			Rails.logger.info("[wiki_graphviz]dot map: #{$?.inspect}")
-			p.call("failed to execute dot when creating map.")
+			Rails.logger.info("[wiki_mscgen]dot map: #{$?.inspect}")
+			p.call("failed to execute mscgen when creating map.")
 			return
 		end
 	end
 
-	def	create_image_using_gv(layout, fmt, dot_text, result, temps)
-		Rails.logger.info("[wiki_graphviz]using Gv")
-
-		pipes = IO.pipe
-
-		begin
-			pid = fork {
-				# child
-	
-				# Gv reports errors to stderr immediately.
-				# so, get the message from pipe
-				STDERR.reopen(pipes[1])
-	
-				begin
-					require 'gv'
-				rescue LoadError
-					exit! 5
-				end
-
-				g = nil
-				ec = 0
-				begin
-					g = Gv.readstring(dot_text)
-					if g.nil?
-						ec = 1
-						raise	"readstring"
-					end
-					r = Gv.layout(g, layout)
-					if !r
-						ec = 2
-						raise	"layout"
-					end
-					r = Gv.render(g, fmt[:type], temps[:img].path)
-					if !r
-						ec = 3
-						raise	"render"
-					end
-					r = Gv.render(g, "imap", temps[:map].path)
-					if !r
-						ec = 4
-						raise	"render imap"
-					end
-				rescue RuntimeError
-				ensure
-					if g
-						Gv.rm(g)
-					end
-				end
-				exit! ec
-			}
-
-			# parent
-			pipes[1].close
-
-			Process.waitpid pid
-			stat = $?
-			ec = stat.exitstatus
-			Rails.logger.info("[wiki_graphviz]child status: #{stat.inspect}")
-			if stat.exited? && ec == 5
-				# Chance to falldown using external dot command.
-				raise FalldownDotError, "failed to load Gv."
-			end
-
-			result[:message] = pipes[0].read.to_s.strip
-			if ec != 0 && result[:message] == ""
-				result[:message] = "Child process failed."
-			end
-
-		ensure
-			pipes.each {|p|
-				if !p.closed?
-					p.close
-				end
-			}
-		end
-
-	end
 
 private 
 
@@ -294,22 +197,12 @@ private
 		fmt
 	end
 
-	def	decide_layout(layout)
-		layout = layout.to_s.downcase
-		if !ALLOWED_LAYOUT[layout]
-			layout = "dot"
-		end
-
-		layout
-	end
-
-
 	class Macro
 		def	initialize(view, wiki_content)
 			@content = wiki_content
 
 			@view = view
-			@view.controller.extend(WikiGraphvizHelper)
+			@view.controller.extend(WikiMscgenHelper)
 			[@content, @view.controller].each {|e|
 				if @project.nil? && e.respond_to?(:project)
 					@project = e.project
@@ -329,10 +222,10 @@ private
 			end
 		end
 
-		def	graphviz(args)
+		def	mscgen(args)
 			begin
 				if @project.nil?
-					Rails.logger.info "[wiki_graphviz]project is not defined."
+					Rails.logger.info "[wiki_mscgen]project is not defined."
 					return ""
 				end
 
@@ -347,21 +240,21 @@ private
 				@view.controller.countup_macro_index()
 				@view.controller.make_macro_output_by_title(macro_params)
 			rescue => e
-				Rails.logger.warn "[wiki_graphviz]#{e.backtrace.join("\n")}"
+				Rails.logger.warn "[wiki_mscgen]#{e.backtrace.join("\n")}"
 				ex = RuntimeError.new(e.message)
 				ex.set_backtrace(e.backtrace)
 				raise ex
 			end
 		end
 
-		def	graphviz_me(args, title)
+		def	mscgen_me(args, title)
 			begin
 				if !@content.nil? && !@content.kind_of?(WikiContent) && !@content.kind_of?(WikiContent::Version)
 					raise "This macro can be described in wiki page only."
 				end
 
 				if @project.nil?
-					Rails.logger.info "[wiki_graphviz]project is not defined."
+					Rails.logger.info "[wiki_mscgen]project is not defined."
 					return ""
 				end
 
@@ -387,17 +280,17 @@ private
 				@view.controller.countup_macro_index()
 				@view.controller.make_macro_output_by_text(text, macro_params, using_data_scheme)
 			rescue => e
-				Rails.logger.warn "[wiki_graphviz]#{e.backtrace.join("\n")}"
+				Rails.logger.warn "[wiki_mscgen]#{e.backtrace.join("\n")}"
 				ex = RuntimeError.new(e.message)
 				ex.set_backtrace(e.backtrace)
 				raise ex
 			end
 		end
 
-		def	graphviz_link(args, title, dottext)
+		def	mscgen_link(args, title, dottext)
 			begin
 				if @project.nil?
-					Rails.logger.info "[wiki_graphviz]project is not defined."
+					Rails.logger.info "[wiki_mscgen]project is not defined."
 					return ""
 				end
 
@@ -411,7 +304,7 @@ private
 				@view.controller.countup_macro_index()
 				@view.controller.make_macro_output_by_text(dottext, macro_params, using_data_scheme)
 			rescue => e
-				Rails.logger.warn "[wiki_graphviz]#{e.backtrace.join("\n")}"
+				Rails.logger.warn "[wiki_mscgen]#{e.backtrace.join("\n")}"
 				ex = RuntimeError.new(e.message)
 				ex.set_backtrace(e.backtrace)
 				raise ex
@@ -457,7 +350,7 @@ private
 	class ViewListener < Redmine::Hook::ViewListener
 		def view_layouts_base_html_head(context)
 			context[:controller].send(:render_to_string,
-				:template => 'wiki_graphviz/_head',
+				:template => 'wiki_mscgen/_head',
 				:layout => false,
 				:locals => {:context => context})
 		end

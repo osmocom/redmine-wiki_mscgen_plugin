@@ -1,16 +1,16 @@
 require 'redmine'
 
 
-Rails.logger.info 'Starting wiki_graphviz_plugin for Redmine'
+Rails.logger.info 'Starting wiki_mscgen_plugin for Redmine'
 
-Redmine::Plugin.register :wiki_graphviz_plugin do |plugin|
-	requires_redmine :version_or_higher => '3.0.0'
-  name 'Graphviz Wiki-macro Plugin'
-  author 'tckz'
-  url "http://passing.breeze.cc/mt/"
-  description 'Render graph image from the wiki contents by Graphviz(http://www.graphviz.org/)'
+Redmine::Plugin.register :wiki_mscgen_plugin do |plugin|
+	requires_redmine :version_or_higher => '2.6.8'
+  name 'Mscgen Wiki-macro Plugin'
+  author 'zecke'
+  url "http://github.com/redmine-wiki_mscgen_plugin"
+  description 'Render graph image from the wiki contents by mscgen(http://www.mcternan.me.uk/mscgen/)'
   version '0.7.0'
-	settings :default => {'cache_seconds' => '0'}, :partial => 'wiki_graphviz/settings'
+	settings :default => {'cache_seconds' => '0'}, :partial => 'wiki_mscgen/settings'
 
 	Redmine::WikiFormatting::Macros.register do
 
@@ -18,8 +18,8 @@ Redmine::Plugin.register :wiki_graphviz_plugin do |plugin|
 Render graph image from the wiki page which is specified by macro-args.
 
 <pre>
-{{graphviz(Foo)}}
-{{graphviz(option=value...,Foo)}}
+{{mscgen(Foo)}}
+{{mscgen(option=value...,Foo)}}
 </pre>
 
 * Available options are below.
@@ -42,30 +42,30 @@ EOF
 
 		check_plugin_directory = lambda {
 			if plugin_directory != plugin.id.to_s
-				raise "*** Plugin directory name of 'Graphviz Wiki-macro Plugin' is must be '#{plugin.id}', but '#{plugin_directory}'"
+				raise "*** Plugin directory name of 'Mscgen Wiki-macro Plugin' is must be '#{plugin.id}', but '#{plugin_directory}'"
 			end
 		}
 
-		macro :graphviz do |wiki_content_obj, args|
+		macro :mscgen do |wiki_content_obj, args|
 			check_plugin_directory.call
-			m = WikiGraphvizHelper::Macro.new(self, wiki_content_obj)
-			m.graphviz(args).html_safe
+			m = WikiMscgenHelper::Macro.new(self, wiki_content_obj)
+			m.mscgen(args).html_safe
 		end
 
 		desc <<'EOF'
 Render graph image from the current wiki page.
 
 <pre>
-// {{graphviz_me}}
-// {{graphviz_me(option=value...)}}
+// {{mscgen_me}}
+// {{mscgen_me(option=value...)}}
 </pre>
 
-* options: see graphviz macro.
+* options: see mscgen macro.
 EOF
-		macro	:graphviz_me do |wiki_content_obj, args|
+		macro	:mscgen_me do |wiki_content_obj, args|
 			check_plugin_directory.call
-			m = WikiGraphvizHelper::Macro.new(self, wiki_content_obj)
-			m.graphviz_me(args, params[:id]).html_safe
+			m = WikiMscgenHelper::Macro.new(self, wiki_content_obj)
+			m.mscgen_me(args, params[:id]).html_safe
 		end
 
 
@@ -83,10 +83,10 @@ Render graph image from text within the macro command.
 
 * options: see graphviz macro.
 EOF
-		macro	:graphviz_link do |wiki_content_obj, args, dottext |
+		macro	:mscgen_link do |wiki_content_obj, args, dottext |
 			check_plugin_directory.call
-			m = WikiGraphvizHelper::Macro.new(self, wiki_content_obj)
-			m.graphviz_link(args, params[:id], dottext).html_safe
+			m = WikiMscgenHelper::Macro.new(self, wiki_content_obj)
+			m.mscgen_link(args, params[:id], dottext).html_safe
 		end
 
 	end
