@@ -7,7 +7,7 @@ Redmine::Plugin.register :wiki_mscgen_plugin do |plugin|
 	requires_redmine :version_or_higher => '2.6.8'
   name 'Mscgen Wiki-macro Plugin'
   author 'zecke'
-  url "http://github.com/redmine-wiki_mscgen_plugin"
+  url "http://github.com/zecke/redmine-wiki_mscgen_plugin"
   description 'Render graph image from the wiki contents by mscgen(http://www.mcternan.me.uk/mscgen/)'
   version '0.7.0'
 	settings :default => {'cache_seconds' => '0'}, :partial => 'wiki_mscgen/settings'
