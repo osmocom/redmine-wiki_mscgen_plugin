@@ -1,6 +1,6 @@
 # Redmine Wiki mscgen-macro plugin
 
-Redmine Wiki Mscgen-macro plugin will allow Redmine's wiki to render graph image
+Redmine Wiki Mscgen-macro plugin will make Redmine's wiki to render graph image
 forked from the Graphviz-macro plugin.
 
 ## Features
@@ -66,14 +66,6 @@ forked from the Graphviz-macro plugin.
 
 ## Tips
 
-* On Windows, If you want to use the text which is NOT written in English(Such as Japanese) in the graph,  You should specify "fontname" attribute to the object like below.
-
-	```
-  somenode [label="some text in Japanese", fontname="MS Gothic"]
-	```
-
-	NOTE: "MS Gothic" is just example. You should specify it using real font name. "MS"(ZENAKU) + HANKAKU White space + "Gothic"(ZENAKU KATAKANA)
-
 * Example
 
 	```
@@ -103,7 +95,7 @@ forked from the Graphviz-macro plugin.
 
 ## Requirement
 
-* Redmine 2.6.8 or later.
+* Redmine 4.0.0 or later.
 * ruby 2.2
 * Mscgen http://www.mcternan.me.uk/mscgen/
 		```
@@ -144,17 +136,22 @@ git clone git://github.com/zecke/redmine-wiki_mscgen_plugin wiki_mscgen_plugin
 ### Optional
 
 * If you want to use caching feature for rendered images, must configure your cache_store.
-* This plugin expects the store like ```ActiveSupport::Cache::MemCacheStore``` which provides marshaling when set/get the value. 
+* This plugin expects the store like ```ActiveSupport::Cache::DalliStore``` which provides marshaling when set/get the value. 
 
-<!-- dummy for beaking list -->
+<!-- dummy for breaking list -->
 
 1. Setup caching environment, like memcached.
+1. Install gem for caching.
+   ```
+   # e.g.) cd $RAILS_ROOT
+   $ bundle add dalli
+   ```
 1. Configure cache_store.
 
 	```
      e.g.) config/environments/production.rb
      config.action_controller.perform_caching = true
-     config.action_controller.cache_store = :mem_cache_store, "localhost" 
+     config.action_controller.cache_store = :dalli_cache_store, "localhost" 
 	```
 1. Restart Redmine.
 1. Login to Redmine as an Administrator.
