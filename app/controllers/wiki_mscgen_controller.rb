@@ -1,6 +1,6 @@
 
 class WikiMscgenController < ApplicationController
-	unloadable
+
   before_action :find_wiki, :wiki_authorize
 
 	include	WikiMscgenHelper
