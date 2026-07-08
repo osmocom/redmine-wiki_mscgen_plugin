@@ -1,6 +1,5 @@
 require 'digest/sha2'
 require	'tempfile'
-require	'kconv'
 require	'fileutils'
 require 'base64'
 
@@ -167,7 +166,6 @@ module WikiMscgenHelper
 		p = lambda {|mes|
 			temps[:err].open
 			t = temps[:err].read.to_s.strip
-			t = t.toutf8
 			result[:message] = t != "" ? t : mes
 		}
 
